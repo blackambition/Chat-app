@@ -163,12 +163,12 @@ const mockMessages: any[] = [
 ];
 
 const mockProducts = [
-  { id: 1, name: "Solar Generator 2KVA", price: "₦300,000", moq: 1, vendor: "EcoPower", img: "https://picsum.photos/seed/gen/300/300", type: "Retail", rating: 4.8, reviews: 124, description: "High-capacity solar generator perfect for small businesses and homes. Includes 2 solar panels and battery unit." },
-  { id: 2, name: "Bulk Cassava (1 Ton)", price: "₦150,000", moq: 5, vendor: "AgriConnect", img: "https://picsum.photos/seed/cassava/300/300", type: "Wholesale", rating: 4.5, reviews: 89, description: "Premium quality cassava sourced directly from local farmers. Ideal for processing into garri or flour." },
-  { id: 3, name: "Web Dev Services", price: "₦500,000", moq: 1, vendor: "TechHub Africa", img: "https://picsum.photos/seed/code/300/300", type: "Service", rating: 5.0, reviews: 42, description: "Full-stack web development services for e-commerce and corporate websites. Includes 1 year of free maintenance." },
-  { id: 4, name: "Wholesale Fabrics", price: "₦50,000/bndl", moq: 10, vendor: "Lagos Textiles", img: "https://picsum.photos/seed/fabric/300/300", type: "Wholesale", rating: 4.2, reviews: 215, description: "High-quality Ankara fabrics in various vibrant patterns. Sold in bundles of 6 yards each." },
-  { id: 5, name: "Delivery Van Hire", price: "₦20,000/day", moq: 1, vendor: "FastLogistics", img: "https://picsum.photos/seed/van/300/300", type: "Service", rating: 4.7, reviews: 310, description: "Reliable delivery van hire for intra-city logistics. Driver included. Fuel not included." },
-  { id: 6, name: "Irrigation Kit", price: "₦45,000", moq: 2, vendor: "AgriConnect", img: "https://picsum.photos/seed/water/300/300", type: "Retail", rating: 4.6, reviews: 56, description: "Complete drip irrigation kit for small to medium-sized farms. Easy to install and highly efficient." },
+  { id: 1, name: "Solar Generator 2KVA", price: "₦300,000", moq: 1, vendor: "EcoPower", img: "https://picsum.photos/seed/gen/300/300", type: "Retail", rating: 4.8, reviews: 124, description: "High-capacity solar generator perfect for small businesses and homes. Includes 2 solar panels and battery unit.", inStock: true },
+  { id: 2, name: "Bulk Cassava (1 Ton)", price: "₦150,000", moq: 5, vendor: "AgriConnect", img: "https://picsum.photos/seed/cassava/300/300", type: "Wholesale", rating: 4.5, reviews: 89, description: "Premium quality cassava sourced directly from local farmers. Ideal for processing into garri or flour.", inStock: false },
+  { id: 3, name: "Web Dev Services", price: "₦500,000", moq: 1, vendor: "TechHub Africa", img: "https://picsum.photos/seed/code/300/300", type: "Service", rating: 5.0, reviews: 42, description: "Full-stack web development services for e-commerce and corporate websites. Includes 1 year of free maintenance.", inStock: true },
+  { id: 4, name: "Wholesale Fabrics", price: "₦50,000/bndl", moq: 10, vendor: "Lagos Textiles", img: "https://picsum.photos/seed/fabric/300/300", type: "Wholesale", rating: 4.2, reviews: 215, description: "High-quality Ankara fabrics in various vibrant patterns. Sold in bundles of 6 yards each.", inStock: true },
+  { id: 5, name: "Delivery Van Hire", price: "₦20,000/day", moq: 1, vendor: "FastLogistics", img: "https://picsum.photos/seed/van/300/300", type: "Service", rating: 4.7, reviews: 310, description: "Reliable delivery van hire for intra-city logistics. Driver included. Fuel not included.", inStock: false },
+  { id: 6, name: "Irrigation Kit", price: "₦45,000", moq: 2, vendor: "AgriConnect", img: "https://picsum.photos/seed/water/300/300", type: "Retail", rating: 4.6, reviews: 56, description: "Complete drip irrigation kit for small to medium-sized farms. Easy to install and highly efficient.", inStock: true },
 ];
 
 const mockTenders = [
@@ -195,6 +195,48 @@ export default function App() {
   const [isPromoteOpen, setIsPromoteOpen] = useState(false);
   const [composeText, setComposeText] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [workFilter, setWorkFilter] = useState('all');
+  const [marketCategory, setMarketCategory] = useState('All');
+  const [priceFilter, setPriceFilter] = useState('all');
+  const [stockFilter, setStockFilter] = useState('all');
+  const [ratingFilter, setRatingFilter] = useState('all');
+
+  const filteredProducts = mockProducts.filter(product => {
+    // Category filter
+    if (marketCategory !== 'All') {
+      if (marketCategory === 'Flash Deals' && !product.inStock) return false;
+      if (marketCategory === 'Wholesale' && product.type !== 'Wholesale') return false;
+      if (marketCategory === 'Agriculture' && product.vendor !== 'AgriConnect') return false;
+      if (marketCategory === 'Tech' && product.vendor !== 'TechHub Africa' && product.vendor !== 'EcoPower') return false;
+      if (marketCategory === 'Logistics' && product.vendor !== 'FastLogistics') return false;
+    }
+
+    // Stock filter
+    if (stockFilter === 'in_stock' && !product.inStock) return false;
+    if (stockFilter === 'out_of_stock' && product.inStock) return false;
+
+    // Rating filter
+    if (ratingFilter === '4_plus' && product.rating < 4.0) return false;
+    if (ratingFilter === '4.5_plus' && product.rating < 4.5) return false;
+
+    // Price filter
+    if (priceFilter !== 'all') {
+      const numericPrice = parseInt(product.price.replace(/[^\d]/g, ''), 10);
+      if (priceFilter === 'under_50k' && numericPrice >= 50000) return false;
+      if (priceFilter === '50k_200k' && (numericPrice < 50000 || numericPrice > 200000)) return false;
+      if (priceFilter === 'over_200k' && numericPrice <= 200000) return false;
+    }
+
+    return true;
+  });
+  
+  // Group Buy State
+  const [groupBuys, setGroupBuys] = useState<Record<number, any>>({
+    1: { target: 100, current: 45, expiresAt: new Date(Date.now() + 86400000 * 3).toISOString() }
+  });
+  const [isCreatingGroupBuy, setIsCreatingGroupBuy] = useState(false);
+  const [groupBuyTarget, setGroupBuyTarget] = useState(50);
+  const [groupBuyDuration, setGroupBuyDuration] = useState(7);
 
   const renderChatList = () => (
     <div className="absolute inset-0 bg-white z-50 flex flex-col">
@@ -483,7 +525,7 @@ export default function App() {
           <div className="relative">
             <img src={selectedProduct.img} alt={selectedProduct.name} className="w-full h-64 object-cover" referrerPolicy="no-referrer" />
             <button 
-              onClick={() => setSelectedProduct(null)} 
+              onClick={() => { setSelectedProduct(null); setIsCreatingGroupBuy(false); }} 
               className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 backdrop-blur-sm"
             >
               <X size={20} />
@@ -491,6 +533,11 @@ export default function App() {
             <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md text-gray-900 text-xs font-bold px-3 py-1 rounded-full shadow-sm">
               {selectedProduct.type}
             </div>
+            {!selectedProduct.inStock && (
+              <div className="absolute top-4 left-4 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                Sold Out
+              </div>
+            )}
           </div>
           
           <div className="p-5 flex-1 overflow-y-auto">
@@ -518,6 +565,81 @@ export default function App() {
               <p className="text-gray-600 text-sm leading-relaxed">{selectedProduct.description}</p>
             </div>
 
+            {/* Group Buy Section */}
+            <div className="mb-6 bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+              <div className="flex items-center gap-2 mb-3">
+                <Users size={20} className="text-indigo-600" />
+                <h3 className="font-bold text-indigo-900">Order with me (Group Buy)</h3>
+              </div>
+              
+              {groupBuys[selectedProduct.id] ? (
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium text-indigo-800">{groupBuys[selectedProduct.id].current} / {groupBuys[selectedProduct.id].target} units</span>
+                    <span className="text-indigo-600 font-bold">{Math.round((groupBuys[selectedProduct.id].current / groupBuys[selectedProduct.id].target) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-indigo-200 rounded-full h-2.5 mb-3 overflow-hidden">
+                    <div className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (groupBuys[selectedProduct.id].current / groupBuys[selectedProduct.id].target) * 100)}%` }}></div>
+                  </div>
+                  <div className="flex justify-between items-center mb-3">
+                    <p className="text-xs text-indigo-700 flex items-center gap-1"><Clock size={12}/> Ends in {Math.max(0, Math.ceil((new Date(groupBuys[selectedProduct.id].expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days</p>
+                    <p className="text-xs text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full font-medium">Wholesale Price Unlocked</p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setGroupBuys(prev => ({
+                        ...prev,
+                        [selectedProduct.id]: {
+                          ...prev[selectedProduct.id],
+                          current: prev[selectedProduct.id].current + 1
+                        }
+                      }));
+                    }}
+                    className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 transition-colors text-sm shadow-sm"
+                  >
+                    Join Group Buy
+                  </button>
+                </div>
+              ) : isCreatingGroupBuy ? (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div>
+                    <label className="block text-xs font-bold text-indigo-900 mb-1">Target Quantity (Units)</label>
+                    <input type="number" value={groupBuyTarget} onChange={e => setGroupBuyTarget(Number(e.target.value))} className="w-full p-2 rounded-lg border border-indigo-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-indigo-900 mb-1">Duration (Days)</label>
+                    <input type="number" value={groupBuyDuration} onChange={e => setGroupBuyDuration(Number(e.target.value))} className="w-full p-2 rounded-lg border border-indigo-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={() => setIsCreatingGroupBuy(false)} className="flex-1 bg-white text-indigo-600 border border-indigo-200 font-bold py-2 rounded-lg hover:bg-indigo-50 transition-colors text-sm">Cancel</button>
+                    <button 
+                      onClick={() => {
+                        setGroupBuys(prev => ({
+                          ...prev,
+                          [selectedProduct.id]: {
+                            target: groupBuyTarget,
+                            current: 1,
+                            expiresAt: new Date(Date.now() + 86400000 * groupBuyDuration).toISOString()
+                          }
+                        }));
+                        setIsCreatingGroupBuy(false);
+                      }} 
+                      className="flex-1 bg-indigo-600 text-white font-bold py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm shadow-sm"
+                    >
+                      Start Group Buy
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-indigo-800 mb-3">Start a group buy to unlock wholesale prices. Invite others to join your order and save together!</p>
+                  <button onClick={() => setIsCreatingGroupBuy(true)} className="w-full bg-white text-indigo-600 border border-indigo-200 font-bold py-2.5 rounded-lg hover:bg-indigo-50 transition-colors text-sm shadow-sm">
+                    Initiate Group Buy
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 mb-6">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
                 <Store size={20} />
@@ -533,8 +655,11 @@ export default function App() {
           </div>
 
           <div className="p-4 border-t border-gray-100 bg-white flex gap-3 pb-safe">
-            <button className="flex-1 bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
-              Buy Now
+            <button 
+              className={cn("flex-1 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg", selectedProduct.inStock ? "bg-blue-600 hover:bg-blue-700 shadow-blue-500/30" : "bg-gray-400 cursor-not-allowed")}
+              disabled={!selectedProduct.inStock}
+            >
+              {selectedProduct.inStock ? "Buy Now" : "Sold Out"}
             </button>
             <button className="px-6 bg-gray-100 text-gray-700 font-bold py-3.5 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2">
               <MessageCircle size={20} /> Chat
@@ -810,43 +935,44 @@ export default function App() {
             </div>
           )}
 
-          {/* Search Tab */}
-          {activeTab === 'search' && (
-            <div className="p-4">
-              <div className="bg-gray-200 rounded-full flex items-center px-4 py-2 gap-2 mb-4">
-                <Search size={20} className="text-gray-500" />
-                <input type="text" placeholder="Search businesses, products, keywords..." className="bg-transparent outline-none flex-1 text-[15px]" />
+          {/* Network Tab */}
+          {activeTab === 'network' && (
+            <div className="p-4 bg-gray-50 min-h-full">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="font-bold text-xl">My Network</h2>
+                <button className="text-blue-600 text-sm font-bold">Manage</button>
               </div>
               
-              {/* Search Filters */}
-              <div className="flex gap-2 mb-6 overflow-x-auto hide-scrollbar pb-1">
-                <button className="px-4 py-1.5 bg-gray-900 text-white rounded-full text-sm font-bold whitespace-nowrap">All</button>
-                <button className="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-full text-sm font-bold whitespace-nowrap hover:bg-gray-300">Businesses</button>
-                <button className="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-full text-sm font-bold whitespace-nowrap hover:bg-gray-300">Products</button>
-                <button className="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-full text-sm font-bold whitespace-nowrap hover:bg-gray-300">Keywords</button>
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
+                <div className="p-3 border-b border-gray-100 flex justify-between items-center cursor-pointer hover:bg-gray-50">
+                  <span className="font-medium text-gray-700">Connections</span>
+                  <span className="text-gray-500">1,024</span>
+                </div>
+                <div className="p-3 border-b border-gray-100 flex justify-between items-center cursor-pointer hover:bg-gray-50">
+                  <span className="font-medium text-gray-700">Following & followers</span>
+                  <span className="text-gray-500">56.7K</span>
+                </div>
+                <div className="p-3 flex justify-between items-center cursor-pointer hover:bg-gray-50">
+                  <span className="font-medium text-gray-700">Groups</span>
+                  <span className="text-gray-500">12</span>
+                </div>
               </div>
 
-              <h3 className="font-bold text-lg mb-4">Trending Searches</h3>
-              <div className="space-y-4">
+              <h3 className="font-bold text-lg mb-3">People you may know</h3>
+              <div className="grid grid-cols-2 gap-3">
                 {[
-                  { tag: "Solar Panels Lagos", type: "Product Search", count: "12K" },
-                  { tag: "Wholesale Suppliers", type: "Business Search", count: "8.5K" },
-                  { tag: "Farming Equipment", type: "Keyword", count: "5K" },
-                  { tag: "Tech Hubs Nairobi", type: "Business Search", count: "3.2K" },
-                  { tag: "Logistics Delivery", type: "Keyword", count: "2.1K" },
-                ].map((item, i) => (
-                  <div key={i} className="flex justify-between items-start cursor-pointer hover:bg-gray-100 p-2 -mx-2 rounded-lg transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-gray-100 p-2.5 rounded-full text-gray-500">
-                        <Search size={18} />
-                      </div>
-                      <div>
-                        <p className="font-bold text-[15px]">{item.tag}</p>
-                        <p className="text-xs text-gray-500">{item.type} · {item.count} searches</p>
-                      </div>
-                    </div>
-                    <button className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200">
-                      <MoreVertical size={18} />
+                  { name: "Sarah Jenkins", role: "Product Manager at TechCorp", mutual: "12 mutual connections", avatar: "https://picsum.photos/seed/sarah/150/150" },
+                  { name: "David Okeke", role: "Software Engineer", mutual: "5 mutual connections", avatar: "https://picsum.photos/seed/david/150/150" },
+                  { name: "Aisha Mohammed", role: "Founder @ AgriConnect", mutual: "28 mutual connections", avatar: "https://picsum.photos/seed/aisha/150/150" },
+                  { name: "Michael Chen", role: "UX Designer", mutual: "3 mutual connections", avatar: "https://picsum.photos/seed/michael/150/150" },
+                ].map((person, i) => (
+                  <div key={i} className="bg-white border border-gray-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-shadow">
+                    <img src={person.avatar} alt={person.name} className="w-16 h-16 rounded-full mb-2 object-cover" referrerPolicy="no-referrer" />
+                    <h4 className="font-bold text-[14px] leading-tight mb-1">{person.name}</h4>
+                    <p className="text-[11px] text-gray-500 line-clamp-2 mb-1 h-8">{person.role}</p>
+                    <p className="text-[10px] text-gray-400 mb-3 flex items-center gap-1"><Users size={10}/> {person.mutual}</p>
+                    <button className="w-full py-1.5 border border-blue-600 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-50 transition-colors mt-auto">
+                      Connect
                     </button>
                   </div>
                 ))}
@@ -923,39 +1049,83 @@ export default function App() {
               <div className="bg-white py-3 mb-2 border-b border-gray-200">
                 <div className="flex gap-4 overflow-x-auto hide-scrollbar px-4">
                   {[
+                    { name: 'All', icon: <Grid size={18} className={marketCategory === 'All' ? "text-blue-600" : "text-gray-500"} /> },
                     { name: 'Flash Deals', icon: <Zap size={18} className="text-orange-500" /> },
                     { name: 'Wholesale', icon: <Package size={18} className="text-blue-500" /> },
                     { name: 'Agriculture', icon: <Store size={18} className="text-green-500" /> },
                     { name: 'Tech', icon: <Monitor size={18} className="text-purple-500" /> },
                     { name: 'Logistics', icon: <MapPin size={18} className="text-red-500" /> }
                   ].map(cat => (
-                    <button key={cat.name} className="flex flex-col items-center gap-1.5 flex-shrink-0 group">
-                      <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100 group-hover:border-blue-200 group-hover:bg-blue-50 transition-colors">
+                    <button 
+                      key={cat.name} 
+                      onClick={() => setMarketCategory(cat.name)}
+                      className="flex flex-col items-center gap-1.5 flex-shrink-0 group"
+                    >
+                      <div className={cn("w-12 h-12 rounded-full flex items-center justify-center border transition-colors", marketCategory === cat.name ? "bg-blue-100 border-blue-300" : "bg-gray-50 border-gray-100 group-hover:border-blue-200 group-hover:bg-blue-50")}>
                         {cat.icon}
                       </div>
-                      <span className="text-[11px] font-medium text-gray-700">{cat.name}</span>
+                      <span className={cn("text-[11px] font-medium", marketCategory === cat.name ? "text-blue-600 font-bold" : "text-gray-700")}>{cat.name}</span>
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Advanced Filters */}
+              <div className="px-4 mb-4 flex gap-2 overflow-x-auto hide-scrollbar">
+                <select 
+                  className="bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-full px-3 py-1.5 outline-none focus:border-blue-500 flex-shrink-0"
+                  value={priceFilter}
+                  onChange={(e) => setPriceFilter(e.target.value)}
+                >
+                  <option value="all">Any Price</option>
+                  <option value="under_50k">Under ₦50k</option>
+                  <option value="50k_200k">₦50k - ₦200k</option>
+                  <option value="over_200k">Over ₦200k</option>
+                </select>
+
+                <select 
+                  className="bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-full px-3 py-1.5 outline-none focus:border-blue-500 flex-shrink-0"
+                  value={stockFilter}
+                  onChange={(e) => setStockFilter(e.target.value)}
+                >
+                  <option value="all">All Stock</option>
+                  <option value="in_stock">In Stock</option>
+                  <option value="out_of_stock">Sold Out</option>
+                </select>
+
+                <select 
+                  className="bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-full px-3 py-1.5 outline-none focus:border-blue-500 flex-shrink-0"
+                  value={ratingFilter}
+                  onChange={(e) => setRatingFilter(e.target.value)}
+                >
+                  <option value="all">Any Rating</option>
+                  <option value="4_plus">4.0+ Stars</option>
+                  <option value="4.5_plus">4.5+ Stars</option>
+                </select>
               </div>
 
               {/* Product Grid */}
               <div className="px-3">
                 <div className="flex justify-between items-center mb-3 px-1">
                   <h3 className="font-bold text-gray-900 flex items-center gap-1.5">
-                    <TrendingUp size={18} className="text-red-500" /> Recommended for you
+                    {marketCategory === 'All' ? <><TrendingUp size={18} className="text-red-500" /> Recommended for you</> : <>{marketCategory}</>}
                   </h3>
                   <button className="text-blue-600 text-[13px] font-bold">See all</button>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2.5">
-                  {mockProducts.map((item) => (
+                  {filteredProducts.map((item) => (
                     <div key={item.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-all group flex flex-col">
-                      <div className="relative cursor-pointer" onClick={() => setSelectedProduct(item)}>
+                      <div className="relative cursor-pointer" onClick={() => { setSelectedProduct(item); setIsCreatingGroupBuy(false); }}>
                         <img src={item.img} alt={item.name} className="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300" referrerPolicy="no-referrer" />
                         <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded">
                           {item.type}
                         </div>
+                        {!item.inStock && (
+                          <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                            Sold Out
+                          </div>
+                        )}
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <div className="bg-white/90 backdrop-blur-sm text-gray-900 rounded-full p-2 translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
                             <Eye size={20} />
@@ -963,7 +1133,7 @@ export default function App() {
                         </div>
                       </div>
                       <div className="p-3 flex-1 flex flex-col justify-between">
-                        <div className="cursor-pointer" onClick={() => setSelectedProduct(item)}>
+                        <div className="cursor-pointer" onClick={() => { setSelectedProduct(item); setIsCreatingGroupBuy(false); }}>
                           <h3 className="font-medium text-[13px] leading-tight line-clamp-2 mb-1 text-gray-800 group-hover:text-blue-600 transition-colors">{item.name}</h3>
                           <div className="flex items-center gap-1 mb-1">
                             <Star size={10} className="fill-yellow-500 text-yellow-500" />
@@ -979,8 +1149,11 @@ export default function App() {
                             <span className="truncate">{item.vendor}</span>
                           </p>
                           <div className="flex gap-1.5">
-                            <button className="flex-1 bg-blue-600 text-white text-[11px] font-bold py-1.5 rounded hover:bg-blue-700 transition-colors">
-                              Buy Now
+                            <button 
+                              onClick={() => { setSelectedProduct(item); setIsCreatingGroupBuy(false); }}
+                              className="flex-1 bg-blue-50 text-blue-600 text-[11px] font-bold py-1.5 rounded hover:bg-blue-100 transition-colors flex items-center justify-center gap-1"
+                            >
+                              <Eye size={12} /> Quick View
                             </button>
                             <button className="bg-gray-100 text-gray-700 p-1.5 rounded hover:bg-gray-200 transition-colors" title="Contact Supplier">
                               <MessageCircle size={14} />
@@ -1010,60 +1183,65 @@ export default function App() {
                 </div>
                 {/* Filters */}
                 <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
-                  <button className="px-4 py-1.5 bg-gray-900 text-white rounded-full text-sm font-bold whitespace-nowrap">All</button>
-                  <button className="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-full text-sm font-bold whitespace-nowrap hover:bg-gray-300">Gov Tenders</button>
-                  <button className="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-full text-sm font-bold whitespace-nowrap hover:bg-gray-300">Hiring</button>
-                  <button className="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-full text-sm font-bold whitespace-nowrap hover:bg-gray-300">Looking for Work</button>
+                  <button onClick={() => setWorkFilter('all')} className={cn("px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors", workFilter === 'all' ? "bg-gray-900 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300")}>All</button>
+                  <button onClick={() => setWorkFilter('tenders')} className={cn("px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors", workFilter === 'tenders' ? "bg-gray-900 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300")}>Gov Tenders</button>
+                  <button onClick={() => setWorkFilter('hiring')} className={cn("px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors", workFilter === 'hiring' ? "bg-gray-900 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300")}>Hiring</button>
+                  <button onClick={() => setWorkFilter('seekers')} className={cn("px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors", workFilter === 'seekers' ? "bg-gray-900 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300")}>Looking for Work</button>
                 </div>
               </div>
 
               <div className="p-3 space-y-5">
                 {/* Tenders Section */}
-                <div>
-                  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-1.5"><Building size={18} className="text-gray-500"/> Government Tenders</h3>
-                  <div className="space-y-3">
-                    {mockTenders.map(tender => (
-                      <div key={tender.id} className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                        <div className="flex justify-between items-start mb-1.5">
-                          <h4 className="font-bold text-[15px] text-blue-700 leading-tight pr-2">{tender.title}</h4>
-                          <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded border border-blue-100 whitespace-nowrap">{tender.type}</span>
+                {(workFilter === 'all' || workFilter === 'tenders') && (
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-1.5"><Building size={18} className="text-gray-500"/> Government Tenders</h3>
+                    <div className="space-y-3">
+                      {mockTenders.map(tender => (
+                        <div key={tender.id} className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                          <div className="flex justify-between items-start mb-1.5">
+                            <h4 className="font-bold text-[15px] text-blue-700 leading-tight pr-2">{tender.title}</h4>
+                            <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded border border-blue-100 whitespace-nowrap">{tender.type}</span>
+                          </div>
+                          <p className="text-xs text-gray-600 mb-3">{tender.agency}</p>
+                          <div className="flex justify-between items-center text-xs text-gray-500 pt-2 border-t border-gray-100">
+                            <span className="flex items-center gap-1"><Clock size={12}/> Deadline: {tender.deadline}</span>
+                            <span className="font-bold text-gray-900">{tender.budget}</span>
+                          </div>
                         </div>
-                        <p className="text-xs text-gray-600 mb-3">{tender.agency}</p>
-                        <div className="flex justify-between items-center text-xs text-gray-500 pt-2 border-t border-gray-100">
-                          <span className="flex items-center gap-1"><Clock size={12}/> Deadline: {tender.deadline}</span>
-                          <span className="font-bold text-gray-900">{tender.budget}</span>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Hiring Section */}
-                <div>
-                  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-1.5"><Briefcase size={18} className="text-gray-500"/> Advertising Work (Hiring)</h3>
-                  <div className="space-y-3">
-                    {mockJobs.map(job => (
-                      <div key={job.id} className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                         <div className="flex justify-between items-start mb-1.5">
-                          <h4 className="font-bold text-[15px] text-gray-900 leading-tight pr-2">{job.title}</h4>
-                          <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded border border-green-100 whitespace-nowrap">{job.type}</span>
+                {(workFilter === 'all' || workFilter === 'hiring') && (
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-1.5"><Briefcase size={18} className="text-gray-500"/> Advertising Work (Hiring)</h3>
+                    <div className="space-y-3">
+                      {mockJobs.map(job => (
+                        <div key={job.id} className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                           <div className="flex justify-between items-start mb-1.5">
+                            <h4 className="font-bold text-[15px] text-gray-900 leading-tight pr-2">{job.title}</h4>
+                            <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded border border-green-100 whitespace-nowrap">{job.type}</span>
+                          </div>
+                          <p className="text-xs text-gray-600 mb-3">{job.company} • {job.location}</p>
+                          <div className="flex justify-between items-center text-xs pt-2 border-t border-gray-100">
+                            <span className="font-bold text-gray-900">{job.salary}</span>
+                            <button className="text-blue-600 font-bold hover:underline">Apply Now</button>
+                          </div>
                         </div>
-                        <p className="text-xs text-gray-600 mb-3">{job.company} • {job.location}</p>
-                        <div className="flex justify-between items-center text-xs pt-2 border-t border-gray-100">
-                          <span className="font-bold text-gray-900">{job.salary}</span>
-                          <button className="text-blue-600 font-bold hover:underline">Apply Now</button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Looking for Work Section */}
-                <div>
-                  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-1.5"><Users size={18} className="text-gray-500"/> Looking for Work</h3>
-                  <div className="space-y-3">
-                    {mockSeekers.map(seeker => (
-                      <div key={seeker.id} className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm flex gap-3 hover:shadow-md transition-shadow cursor-pointer">
+                {(workFilter === 'all' || workFilter === 'seekers') && (
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-1.5"><Users size={18} className="text-gray-500"/> Looking for Work</h3>
+                    <div className="space-y-3">
+                      {mockSeekers.map(seeker => (
+                        <div key={seeker.id} className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm flex gap-3 hover:shadow-md transition-shadow cursor-pointer">
                         <img src={seeker.avatar} alt={seeker.name} className="w-14 h-14 rounded-full object-cover border border-gray-100" referrerPolicy="no-referrer" />
                         <div className="flex-1">
                           <div className="flex justify-between items-start mb-1">
@@ -1084,6 +1262,7 @@ export default function App() {
                     ))}
                   </div>
                 </div>
+                )}
 
               </div>
             </div>
@@ -1120,7 +1299,7 @@ export default function App() {
         {/* Bottom Navigation (Sticky) */}
         <nav className="w-full bg-white border-t border-gray-200 px-4 py-3 pb-safe flex justify-between items-center z-30 mt-auto">
           <NavItem icon={<Home size={26} className={activeTab === 'home' ? "fill-gray-900" : ""} />} isActive={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-          <NavItem icon={<Users size={26} className={activeTab === 'search' ? "fill-gray-900" : ""} />} isActive={activeTab === 'search'} onClick={() => setActiveTab('search')} />
+          <NavItem icon={<Users size={26} className={activeTab === 'network' ? "fill-gray-900" : ""} />} isActive={activeTab === 'network'} onClick={() => setActiveTab('network')} />
           <NavItem icon={<Store size={26} className={activeTab === 'market' ? "fill-gray-900" : ""} />} isActive={activeTab === 'market'} onClick={() => setActiveTab('market')} />
           <NavItem icon={<Briefcase size={26} className={activeTab === 'work' ? "fill-gray-900" : ""} />} isActive={activeTab === 'work'} onClick={() => setActiveTab('work')} />
           <NavItem 
